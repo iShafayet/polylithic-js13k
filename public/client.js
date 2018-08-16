@@ -5,8 +5,10 @@
 
 class GameClient {
 
-  constructor(canvasEl, htmlEl) {
-
+  constructor({ canvasEl, eventHandler }) {
+    this.canvasEl = canvasEl;
+    this.eventHandler = eventHandler;
+    this.eventHandler('message', { message: 'Waiting for opponent...' });
   }
 
 }
@@ -15,7 +17,30 @@ class GameClient {
 
 
 
-
+window.addEventListener("load", () => {
+  document.querySelector('#playButton').addEventListener('click', () => {
+    document.querySelector('#intro').style.display = 'none';
+    let gameClient = new GameClient({
+      canvasEl: document.querySelector('#canvas'),
+      eventHandler: (event, data = {}) => {
+        if (event === 'message') {
+          document.querySelector('#message-box').style.display = 'block';
+          document.querySelector('#canvas').style.display = 'none';
+          let { message, level = 'info' } = data;
+          let color = {
+            'info': 'blue',
+            'error': 'red'
+          }[level];
+          document.querySelector('#message').style.color = color;
+          document.querySelector('#message').innerHTML = message;
+        } else if (event === 'game-start') {
+          document.querySelector('#message-box').style.display = 'none';
+          document.querySelector('#canvas').style.display = 'block';
+        }
+      }
+    });
+  });
+});
 
 
 
