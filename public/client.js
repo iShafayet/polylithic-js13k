@@ -1,15 +1,73 @@
 "use strict";
 
-
-
-
 class GameClient {
 
   constructor({ canvasEl, eventHandler }) {
     this.canvasEl = canvasEl;
     this.eventHandler = eventHandler;
-    this.eventHandler('message', { message: 'Waiting for opponent...' });
+
+    this.gameData = {
+      duration: 0,
+      stoneList: [],
+      own: {
+        droneList: [],
+        stoneReserve: 0,
+        mothershipHealth: 0
+      },
+      opponent: {
+        droneList: [],
+        stoneReserve: 0,
+        mothershipHealth: 0
+      }
+    }
+
   }
+
+  startMatchmaking() {
+    this.eventHandler('message', { message: 'Waiting for opponent...' });
+    socket = io({ upgrade: false, transports: ["websocket"] });
+
+    // socket.on("start", () => {
+    //   enableButtons();
+    //   setMessage("Round " + (points.win + points.lose + points.draw + 1));
+    // });
+
+    // socket.on("win", () => {
+    //   points.win++;
+    //   displayScore("You win!");
+    // });
+
+    // socket.on("lose", () => {
+    //   points.lose++;
+    //   displayScore("You lose!");
+    // });
+
+    // socket.on("draw", () => {
+    //   points.draw++;
+    //   displayScore("Draw!");
+    // });
+
+    // socket.on("end", () => {
+    //   disableButtons();
+    //   setMessage("Waiting for opponent...");
+    // });
+
+    socket.on("connect", () => {
+      disableButtons();
+      setMessage("Waiting for opponent...");
+    });
+
+    socket.on("disconnect", () => {
+      disableButtons();
+      setMessage("Connection lost!");
+    });
+
+    socket.on("error", () => {
+      disableButtons();
+      setMessage("Connection error!");
+    });
+  }
+
 
 }
 
