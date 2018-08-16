@@ -1,27 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<title>Rock, Paper, Scissors</title>
-<meta charset="UTF-8">
+  <title>PolyLithic</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      padding: 0px;
+      margin: 0px;
+      background: #263238;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    .red {
+      border: 1px solid red;
+    }
+
+    .green {
+      border: 1px solid green;
+    }
+
+    #menu {
+      width: 1280px;
+      height: 720px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #intro {
+      max-width: 720px;
+    }
+
+    #intro #title {
+      font-size: 32px;
+    }
+
+    #intro p b {
+      text-decoration: underline;
+    }
+
+    #intro #playButton {
+      margin-top: 60px;
+      font-size: 36px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    #intro #playButton:hover {
+      color: gray;
+    }
+  </style>
 </head>
+
 <body>
 
-<div style="text-align:center">
-    <h1 id="message"></h1>
-    <div>
-        <button>Rock</button>
-        <button>Paper</button>
-        <button>Scissors</button>
+  <!-- <canvas id="canvas" width="1280" height="720" class="red"></canvas> -->
+  <div id="menu" class="green">
+    <div id="intro">
+      <div id="title">PolyLithic</div>
+      <p>PolyLithic is a fast paced, skill based, sci-fi MOBA.</p>
+      <p>Your
+        <b>mothership</b>'s power core is
+        <b>offline</b>. You must create
+        <b>drones</b> and gather
+        <b>uranium stones</b> jumping in and out of existence.</p>
+      <p>Your opponent is trying to do the exact same thing. Either beat him to a 100 stone reserves or destroy his mothership.</p>
+      <ul>
+        <li>Drones pick up uranium stones on touch. They have to carry them back to the mothership.</li>
+        <li>Opposing drones and ships get destroyed when they clash.</li>
+        <li>Right click own mothership to create new drone.</li>
+        <li>Left click a drone to select it.</li>
+        <li>Left click and drag to select multiple drones.</li>
+        <li>Right click an empty space to move selected drone(s) there.</li>
+        <li>Right click and drag one or more drones to outline curved path for it/those to follow.</li>
+      </ul>
+      <div id="playButton">
+        <a>Join the game!</a>
+      </div>
     </div>
-    <div id="score"></div>
-    <p>
-        <a href="/stat">Statistics</a>
-    </p>
-</div>
+  </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/shared.js"></script>
-<script src="/client.js"></script>
+
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared.js"></script>
+  <script src="/client.js"></script>
 
 </body>
+
 </html>
