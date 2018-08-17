@@ -2,12 +2,17 @@
 
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
+const DRONE_PURCHASE_COST = 5;
+const DRONE_RADIUS = 10;
+const MOTHERSHIP_RADIUS = 50;
+const STONE_RADIUS = 5;
+const STONE_MAX_VALUE = 20;
+const STONE_MIN_VALUE = 2;
 
 class Game {
 
-  constructor({ player1, player2, eventHandler }) {
-    this.player1 = player1;
-    this.player2 = player2;
+  constructor({ playerList, eventHandler }) {
+    // this.playerList = playerList;
     this.eventHandler = eventHandler;
     this.data = null;
     this.isOngoing = false;
@@ -17,45 +22,102 @@ class Game {
     this.data = {
       startDatetimeStamp: Date.now(),
       stoneList: [],
-      player1: {
-        droneList: [],
-        stoneReserve: 20,
-        mothership: {
-          health: 1000,
-          x: 0,
-          y: GAME_HEIGHT / 2,
-          r: 50
+      playerList: [
+        {
+          droneIdSeed: 0,
+          droneList: [],
+          stoneReserve: 20,
+          mothership: {
+            health: 1000,
+            x: 0,
+            y: GAME_HEIGHT / 2,
+            r: MOTHERSHIP_RADIUS
+          }
+        },
+        {
+          droneIdSeed: 0,
+          droneList: [],
+          stoneReserve: 20,
+          mothership: {
+            health: 1000,
+            x: GAME_WIDTH,
+            y: GAME_HEIGHT / 2,
+            r: MOTHERSHIP_RADIUS
+          }
         }
-      },
-      player2: {
-        droneList: [],
-        stoneReserve: 20,
-        mothership: {
-          health: 1000,
-          x: GAME_WIDTH,
-          y: GAME_HEIGHT / 2,
-          r: 50
-        }
-      }
+      ]
     };
     this.isOngoing = true;
+    [0, 1].forEach(playerNumber => this.spawnDrone(playerNumber));
+    [0, 1, 2, 3, 4, 5].forEach(() => this.spawnStone());
     this.loop();
   }
 
-  spawnDrone(player) {
+  opponentOf(playerNumber) {
+    if (playerNumber === 0) return 1;
+    return 0;
+  }
 
+  spawnStone() {
+    let value = Math.floor(Math.random() * (STONE_MAX_VALUE - STONE_MIN_VALUE)) + STONE_MIN_VALUE;
+    let stone = {
+      x: Math.floor(Math.random() * GAME_WIDTH),
+      y: Math.floor(Math.random() * GAME_HEIGHT),
+      value,
+      r: (Math.ceil(value / 2) + 5)
+    };
+    this.data.stoneList.push(stone);
+  }
+
+  spawnDrone(playerNumber) {
+    let player = this.data.playerList[playerNumber];
+    if (player.stoneReserve < DRONE_PURCHASE_COST) {
+      this.eventHandler('message', [playerNumber], { message: "Not enough stones." });
+      return;
+    }
+    let id = player.droneIdSeed++;
+    let drone = {
+      id,
+      x: (playerNumber === 0 ? player.mothership.x + MOTHERSHIP_RADIUS * 2 : player.mothership.x - MOTHERSHIP_RADIUS * 2),
+      y: player.mothership.y,
+      r: DRONE_RADIUS,
+      carryingStone: null,
+      pathList: []
+    };
+    player.droneList.push(drone);
   }
 
   publishGameData() {
-    let { player1, player2, stoneList, startDatetimeStamp } = this.data;
+    console.log('RAW DATA', this.data);
+
+    let { playerList, stoneList, startDatetimeStamp } = this.data;
     let duration = Date.now() - startDatetimeStamp;
-    let data = {
-      duration,
-      stoneList,
-      player1,
-      player2
-    };
-    this.eventHandler('game-data', [this.player1, this.player2], data);
+
+    [0, 1].forEach(playerNumber => {
+      let stoneReserve, mothership, droneList;
+
+      ({ stoneReserve, mothership, droneList } = playerList[playerNumber]);
+      let own = {
+        mothership,
+        stoneReserve,
+        droneList: droneList.map(drone => {
+          let { id, x, y, r, carryingStone, pathList } = drone;
+          return { id, x, y, r, carryingStone, pathList };
+        })
+      };
+
+      ({ stoneReserve, mothership, droneList } = playerList[this.opponentOf(playerNumber)]);
+      let opponent = {
+        mothership,
+        stoneReserve,
+        droneList: droneList.map(drone => {
+          let { x, y, r, carryingStone } = drone;
+          return { x, y, r, carryingStone };
+        })
+      };
+
+      this.eventHandler('game-data', playerNumber, { stoneList, duration, own, opponent });
+    });
   }
 
   loop() {
@@ -63,31 +125,11 @@ class Game {
     this.publishGameData();
   }
 
-  forfeit(player, reason) {
+  forfeit(playerNumber, reason) {
 
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 let pendingPlayer = null;
@@ -107,7 +149,7 @@ module.exports = {
         console.log(`${socket.id} - Leaves before joining a game or waiting.`);
       } else if (socket.game.isOngoing) {
         console.log(`${socket.id} - Forfeits.`);
-        socket.game.forfeit(socket.playerIs, 'disconnect');
+        socket.game.forfeit(socket.playerNumber, 'disconnect');
       } else {
         console.log(`${socket.id} - Leaves as winner.`);
       }
@@ -126,34 +168,18 @@ module.exports = {
 
     let game = new Game({
       playerList,
-      eventHandler: (event, playerList, data) => {
-        console.log(event, playerList, data);
-        // if (event === 'game-data') {
-        //   playerList.forEach(player => {
-        //     let clone = JSON.parse(JSON.stringify(data));
-        //     if (player === player1) {
-        //       clone.own = clone['player1'];
-        //       clone.opponent = clone['player2'];
-        //       clone.own.is = 'player1';
-        //       clone.opponent.is = 'player2';
-        //     } else {
-        //       clone.own = clone['player2'];
-        //       clone.opponent = clone['player1'];
-        //       clone.own.is = 'player2';
-        //       clone.opponent.is = 'player1';
-        //     }
-        //     delete clone['player1'];
-        //     delete clone['player2'];
-        //     player.socket.emit("game-data", clone);
-        //   });
-        // }
+      eventHandler: (event, playerNumber, data) => {
+        // console.log(event, playerNumber, data);
+        playerList[playerNumber].emit("game-data", data);
       }
     });
 
     playerList.forEach((player, playerNumber) => {
       player.game = game;
-
+      player.playerNumber = playerNumber;
     });
+
+    game.start();
 
   }
 
