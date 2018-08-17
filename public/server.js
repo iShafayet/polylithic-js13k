@@ -5,9 +5,11 @@ const GAME_HEIGHT = 720;
 const DRONE_PURCHASE_COST = 5;
 const DRONE_RADIUS = 10;
 const MOTHERSHIP_RADIUS = 50;
-const STONE_RADIUS = 5;
+const STONE_MIN_RADIUS = 5;
 const STONE_MAX_VALUE = 20;
 const STONE_MIN_VALUE = 2;
+const STONE_SPAWN_DELAY_MX = 500;
+const DRONE_SPEED_PX_PER_MS = 0.04;
 
 class Game {
 
@@ -21,6 +23,7 @@ class Game {
   start() {
     this.data = {
       startDatetimeStamp: Date.now(),
+      lastStoneSpawnDatetimeStamp: Date.now(),
       stoneList: [],
       playerList: [
         {
@@ -28,7 +31,7 @@ class Game {
           droneList: [],
           stoneReserve: 20,
           mothership: {
-            health: 1000,
+            health: MOTHERSHIP_MAX_HEALTH,
             x: 0,
             y: GAME_HEIGHT / 2,
             r: MOTHERSHIP_RADIUS
@@ -39,7 +42,7 @@ class Game {
           droneList: [],
           stoneReserve: 20,
           mothership: {
-            health: 1000,
+            health: MOTHERSHIP_MAX_HEALTH,
             x: GAME_WIDTH,
             y: GAME_HEIGHT / 2,
             r: MOTHERSHIP_RADIUS
@@ -64,7 +67,7 @@ class Game {
       x: Math.floor(Math.random() * GAME_WIDTH),
       y: Math.floor(Math.random() * GAME_HEIGHT),
       value,
-      r: (Math.ceil(value / 2) + 5)
+      r: (Math.ceil(value / 2) + STONE_MIN_RADIUS)
     };
     this.data.stoneList.push(stone);
   }
@@ -84,14 +87,25 @@ class Game {
       carryingStone: null,
       pathList: []
     };
+    drone.pathList.push({
+      x1: drone.x,
+      y1: drone.y,
+      x2: GAME_WIDTH / 2,
+      y2: GAME_HEIGHT / 2,
+      startDatetimeStamp: (Date.now())
+    });
     player.droneList.push(drone);
   }
 
   publishGameData() {
-    console.log('RAW DATA', this.data);
+    // console.log('RAW DATA', this.data);
 
     let { playerList, stoneList, startDatetimeStamp } = this.data;
     let duration = Date.now() - startDatetimeStamp;
+    stoneList = stoneList.map(stone => {
+      let { x, y, r } = stone;
+      return { x, y, r };
+    });
 
     [0, 1].forEach(playerNumber => {
       let stoneReserve, mothership, droneList;
@@ -120,9 +134,38 @@ class Game {
     });
   }
 
+  moveObjects(now) {
+    const velocity = DRONE_SPEED_PX_PER_MS;
+    [0, 1].forEach(playerNumber => {
+      let { droneList } = this.data.playerList[playerNumber];
+      droneList.forEach(drone => {
+        if (drone.pathList.length === 0) return;
+        let { x1, y1, x2, y2, startDatetimeStamp } = drone.pathList[0];
+        let D = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        let d = (now - startDatetimeStamp) * velocity;
+        if (d > D) {
+          drone.pathList.shift();
+          d = D;
+        }
+        let x = x1 + (d / D) * (x2 - x1);
+        let y = y1 + (d / D) * (y2 - y1);
+        drone.x = x;
+        drone.y = y;
+      });
+    });
+    this.publishGameData();
+  }
+
   loop() {
     if (!this.isOngoing) return;
-    this.publishGameData();
+    let now = Date.now();
+    let diff = now - this.data.startDatetimeStamp;
+    if (now - this.data.lastStoneSpawnDatetimeStamp > STONE_SPAWN_DELAY_MX) {
+      this.data.lastStoneSpawnDatetimeStamp = now;
+      this.spawnStone();
+    }
+    this.moveObjects(now, diff);
+    setTimeout(() => this.loop(), 10);
   }
 
   forfeit(playerNumber, reason) {
