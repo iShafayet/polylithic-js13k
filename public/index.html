@@ -56,13 +56,17 @@
     #intro #playButton:hover {
       color: gray;
     }
+
+    #message {
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
 
-  <canvas id="canvas" width="1280" height="720" class="red" style="display: none;"></canvas>
-  <div id="menu" class="green">
+  <canvas id="canvas" width="1280" height="720"style="display: none;"></canvas>
+  <div id="menu">
 
     <!--  intro - start -->
     <div id="intro">
@@ -77,7 +81,7 @@
       <ul>
         <li>Drones pick up uranium stones on touch. They have to carry them back to the mothership.</li>
         <li>Opposing drones and ships get destroyed when they clash.</li>
-        <li>Right click own mothership to create new drone.</li>
+        <li>Right click own mothership to create new drone. Each drone cost 5 stones.</li>
         <li>Left click a drone to select it.</li>
         <li>Left click and drag to select multiple drones.</li>
         <li>Right click an empty space to move selected drone(s) there.</li>

@@ -5,75 +5,75 @@ class GameClient {
   constructor({ canvasEl, eventHandler }) {
     this.canvasEl = canvasEl;
     this.eventHandler = eventHandler;
-
-    this.gameData = {
-      duration: 0,
-      stoneList: [],
-      own: {
-        droneList: [],
-        stoneReserve: 0,
-        mothershipHealth: 0
-      },
-      opponent: {
-        droneList: [],
-        stoneReserve: 0,
-        mothershipHealth: 0
-      }
-    }
-
+    this.isGameRunning = false;
+    this.socket = null;
+    this.gameData = null;
+    this.joinMatchmaking();
   }
 
-  startMatchmaking() {
+  joinMatchmaking() {
     this.eventHandler('message', { message: 'Waiting for opponent...' });
-    socket = io({ upgrade: false, transports: ["websocket"] });
-
-    // socket.on("start", () => {
-    //   enableButtons();
-    //   setMessage("Round " + (points.win + points.lose + points.draw + 1));
-    // });
-
-    // socket.on("win", () => {
-    //   points.win++;
-    //   displayScore("You win!");
-    // });
-
-    // socket.on("lose", () => {
-    //   points.lose++;
-    //   displayScore("You lose!");
-    // });
-
-    // socket.on("draw", () => {
-    //   points.draw++;
-    //   displayScore("Draw!");
-    // });
-
-    // socket.on("end", () => {
-    //   disableButtons();
-    //   setMessage("Waiting for opponent...");
-    // });
-
-    socket.on("connect", () => {
-      disableButtons();
-      setMessage("Waiting for opponent...");
-    });
+    let socket = this.socket = io({ upgrade: false, transports: ["websocket"], reconnection: false });
 
     socket.on("disconnect", () => {
-      disableButtons();
-      setMessage("Connection lost!");
+      this.isGameRunning = false;
+      this.eventHandler('message', { message: 'DISCONNECT! <br><br> You forfeited the game.', level: 'error' });
     });
 
-    socket.on("error", () => {
-      disableButtons();
-      setMessage("Connection error!");
+    socket.on("error", (err) => {
+      this.isGameRunning = false;
+      this.eventHandler('message', { message: 'ERROR! <br><br> You forfeited the game.', level: 'error' });
+    });
+
+    socket.on("connect", () => {
+      'pass';
+    });
+
+    socket.on("game-data", (data) => {
+      console.log("game-data", data)
+      if (!this.isGameRunning) {
+        this.isGameRunning = true;
+        this.eventHandler('game-start');
+      }
+      this.gameData = data;
+      this.prepareCanvas();
+      this.draw();
     });
   }
 
+  prepareCanvas() {
+    this.ctx = this.canvasEl.getContext('2d');
+    this.canvasWidth = this.canvasEl.width;
+    this.canvasHeight = this.canvasEl.height;
+  }
+
+  drawBackdrop() {
+    this.ctx.fillStyle = 'black';
+    this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+  }
+
+  drawMothership(which) {
+    let { health, x, y, r } = this.gameData[which].mothership;
+    if (which === 'own') {
+      this.ctx.strokeStyle = 'blue';
+      this.ctx.fillStyle = 'blue';
+    } else {
+      this.ctx.strokeStyle = 'red';
+      this.ctx.fillStyle = 'red';
+    }
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, r, 0, 2 * Math.PI, false);
+    this.ctx.stroke();
+    this.ctx.fill();
+  }
+
+  draw() {
+    this.drawBackdrop();
+    this.drawMothership('own');
+    this.drawMothership('opponent');
+  }
 
 }
-
-
-
-
 
 window.addEventListener("load", () => {
   document.querySelector('#playButton').addEventListener('click', () => {
@@ -82,6 +82,7 @@ window.addEventListener("load", () => {
       canvasEl: document.querySelector('#canvas'),
       eventHandler: (event, data = {}) => {
         if (event === 'message') {
+          document.querySelector('#menu').style.display = 'flex';
           document.querySelector('#message-box').style.display = 'block';
           document.querySelector('#canvas').style.display = 'none';
           let { message, level = 'info' } = data;
@@ -92,151 +93,11 @@ window.addEventListener("load", () => {
           document.querySelector('#message').style.color = color;
           document.querySelector('#message').innerHTML = message;
         } else if (event === 'game-start') {
-          document.querySelector('#message-box').style.display = 'none';
+          document.querySelector('#menu').style.display = 'none';
           document.querySelector('#canvas').style.display = 'block';
         }
       }
     });
   });
+  document.querySelector('#playButton').click();
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// (function () {
-
-//   let socket, //Socket.IO client
-//     buttons, //Button elements
-//     message, //Message element
-//     score, //Score element
-//     points = { //Game points
-//       draw: 0,
-//       win: 0,
-//       lose: 0
-//     };
-
-//   /**
-//    * Disable all button
-//    */
-//   function disableButtons() {
-//     for (let i = 0; i < buttons.length; i++) {
-//       buttons[i].setAttribute("disabled", "disabled");
-//     }
-//   }
-
-//   /**
-//    * Enable all button
-//    */
-//   function enableButtons() {
-//     for (let i = 0; i < buttons.length; i++) {
-//       buttons[i].removeAttribute("disabled");
-//     }
-//   }
-
-//   /**
-//    * Set message text
-//    * @param {string} text
-//    */
-//   function setMessage(text) {
-//     message.innerHTML = text;
-//   }
-
-//   /**
-//    * Set score text
-//    * @param {string} text
-//    */
-//   function displayScore(text) {
-//     score.innerHTML = [
-//       "<h2>" + text + "</h2>",
-//       "Won: " + points.win,
-//       "Lost: " + points.lose,
-//       "Draw: " + points.draw
-//     ].join("<br>");
-//   }
-
-//   /**
-//    * Binde Socket.IO and button events
-//    */
-//   function bind() {
-
-//     socket.on("start", () => {
-//       enableButtons();
-//       setMessage("Round " + (points.win + points.lose + points.draw + 1));
-//     });
-
-//     socket.on("win", () => {
-//       points.win++;
-//       displayScore("You win!");
-//     });
-
-//     socket.on("lose", () => {
-//       points.lose++;
-//       displayScore("You lose!");
-//     });
-
-//     socket.on("draw", () => {
-//       points.draw++;
-//       displayScore("Draw!");
-//     });
-
-//     socket.on("end", () => {
-//       disableButtons();
-//       setMessage("Waiting for opponent...");
-//     });
-
-//     socket.on("connect", () => {
-//       disableButtons();
-//       setMessage("Waiting for opponent...");
-//     });
-
-//     socket.on("disconnect", () => {
-//       disableButtons();
-//       setMessage("Connection lost!");
-//     });
-
-//     socket.on("error", () => {
-//       disableButtons();
-//       setMessage("Connection error!");
-//     });
-
-//     for (let i = 0; i < buttons.length; i++) {
-//       ((button, guess) => {
-//         button.addEventListener("click", function (e) {
-//           disableButtons();
-//           socket.emit("guess", guess);
-//         }, false);
-//       })(buttons[i], i + 1);
-//     }
-//   }
-
-//   /**
-//    * Client module init
-//    */
-//   function init() {
-//     socket = io({ upgrade: false, transports: ["websocket"] });
-//     buttons = document.getElementsByTagName("button");
-//     message = document.getElementById("message");
-//     score = document.getElementById("score");
-//     disableButtons();
-//     bind();
-//   }
-
-//   window.addEventListener("load", init, false);
-
-// })();
