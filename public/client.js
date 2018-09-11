@@ -5,6 +5,7 @@ const COLOR_OPPONENT_MOTHERSHIP_FILL = '#FF5722';
 
 const COLOR_OWN_DRONE_FILL = '#00BFA5';
 const COLOR_OPPONENT_DRONE_FILL = '#DD2C00';
+const COLOR_OWN_SELECTED_DRONE_FILL = '#FAFAFA';
 
 class GameClient {
 
@@ -14,6 +15,11 @@ class GameClient {
     this.isGameRunning = false;
     this.socket = null;
     this.gameData = null;
+    this.mouse = {
+      x: 0,
+      y: 0,
+      isPressed: false
+    };
     this.fps = 0;
     this.joinMatchmaking();
   }
@@ -41,10 +47,11 @@ class GameClient {
       if (!this.isGameRunning) {
         this.isGameRunning = true;
         this.eventHandler('game-start');
+        this.secondaryLoop();
       }
       this.gameData = data;
       this.prepareCanvas();
-      this.draw();
+      this.mainLoop();
     });
   }
 
@@ -87,6 +94,12 @@ class GameClient {
 
   drawDrone(drone, whose) {
     let { x, y, r, carryingStone, pathList, id } = drone;
+    if (whose === 'own' && this.selectedDrone && this.selectedDrone.id === id) {
+      this.ctx.fillStyle = COLOR_OWN_SELECTED_DRONE_FILL;
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, r + 5, 0, 2 * Math.PI, false);
+      this.ctx.fill();
+    }
     this.ctx.fillStyle = (whose === 'own' ? COLOR_OWN_DRONE_FILL : COLOR_OPPONENT_DRONE_FILL);
     this.ctx.beginPath();
     this.ctx.arc(x, y, r, 0, 2 * Math.PI, false);
@@ -94,9 +107,9 @@ class GameClient {
     if (whose === 'own') {
       if (pathList.length > 0) {
         let { x2, y2 } = pathList[0];
-        this.ctx.strokeStyle = 'white';
+        this.ctx.strokeStyle = '#B0BEC5';
         this.ctx.lineWidth = 1;
-        this.ctx.setLineDash([6, 4]);
+        this.ctx.setLineDash([8, 6]);
         this.ctx.beginPath();
         this.ctx.arc(x2, y2, r, 0, 2 * Math.PI, false);
         this.ctx.stroke();
@@ -111,10 +124,8 @@ class GameClient {
   drawStone(stone) {
     let { x, y, r } = stone;
     this.ctx.fillStyle = 'yellow';
-
     let width = r;
     let height = r;
-
     this.ctx.beginPath();
     this.ctx.moveTo(x + width * 0.5, y);
     this.ctx.lineTo(x, y + height * 0.5);
@@ -122,12 +133,7 @@ class GameClient {
     this.ctx.lineTo(x + width, y + height * 0.5);
     this.ctx.lineTo(x + width * 0.5, y);
     this.ctx.closePath();
-
-    // this.ctx.beginPath();
-    // this.ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-    // this.ctx.stroke();
     this.ctx.fill();
-
   }
 
   updateFps() {
@@ -140,8 +146,7 @@ class GameClient {
     this.fps += 1;
   }
 
-  draw() {
-    // requestAnimationFrame(() => {
+  mainLoop() {
     this.drawBackdrop();
     this.drawMothership('own');
     this.drawMothership('opponent');
@@ -149,7 +154,77 @@ class GameClient {
     this.gameData.opponent.droneList.forEach(drone => this.drawDrone(drone, 'opponent'));
     this.gameData.stoneList.forEach(stone => this.drawStone(stone));
     this.updateFps();
-    // });
+  }
+
+  drawCursor() {
+    let { x, y, isPressed } = this.mouse;
+    this.ctx.strokeStyle = '#FCE4EC';
+    this.ctx.lineWidth = 1;
+    this.ctx.moveTo(x - 15, y);
+    this.ctx.lineTo(x + 15, y);
+    this.ctx.moveTo(x, y - 15);
+    this.ctx.lineTo(x, y + 15);
+    this.ctx.stroke();
+  }
+
+  drawPossibleTargetPath() {
+    if (this.selectedDrone) {
+      this.selectedDrone = this.gameData.own.droneList.find(drone => drone.id === this.selectedDrone.id);
+    }
+    if (this.selectedDrone) {
+      let { x, y, r } = this.selectedDrone;
+      let { x: x2, y: y2 } = this.mouse;
+      this.ctx.strokeStyle = '#B0BEC5';
+      this.ctx.lineWidth = 1;
+      this.ctx.setLineDash([8, 6]);
+      this.ctx.beginPath();
+      this.ctx.arc(x2, y2, r, 0, 2 * Math.PI, false);
+      this.ctx.stroke();
+      this.ctx.moveTo(x, y);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+    }
+  }
+
+  secondaryLoop() {
+    if (this.gameData) {
+      this.drawCursor();
+      this.drawPossibleTargetPath();
+    }
+    requestAnimationFrame(() => {
+      this.secondaryLoop();
+    });
+  }
+
+  setMouseCoord({ x, y }) {
+    this.mouse.x = x;
+    this.mouse.y = y;
+  }
+
+  setMouseDownStatus(isPressed) {
+    this.mouse.isPressed = isPressed;
+  }
+
+  onMouseClick() {
+    if (!this.gameData) return;
+    let { x, y } = this.mouse;
+    let drone = this.gameData.own.droneList.find(drone => {
+      let { x: x1, y: y1, r } = drone;
+      return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
+    });
+    if (drone) {
+      if (this.selectedDrone && this.selectedDrone.id === drone.id){
+        this.selectedDrone = null;
+      } else {
+        this.selectedDrone = drone;
+      }
+    } else {
+      if (this.selectedDrone) {
+        this.eventHandler('message', { message: 'Waiting for opponent...' });
+
+      }
+    }
   }
 
 }
@@ -157,8 +232,9 @@ class GameClient {
 window.addEventListener("load", () => {
   document.querySelector('#playButton').addEventListener('click', () => {
     document.querySelector('#intro').style.display = 'none';
+    let canvasEl = document.querySelector('#canvas');
     let gameClient = new GameClient({
-      canvasEl: document.querySelector('#canvas'),
+      canvasEl,
       eventHandler: (event, data = {}) => {
         if (event === 'message') {
           document.querySelector('#menu').style.display = 'flex';
@@ -177,6 +253,22 @@ window.addEventListener("load", () => {
         }
       }
     });
+    canvasEl.addEventListener('mousemove', (evt) => {
+      var rect = canvas.getBoundingClientRect();
+      gameClient.setMouseCoord({
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      });
+    }, false);
+    canvasEl.addEventListener('mouseup', (evt) => {
+      console.log('mouseup');
+      gameClient.setMouseDownStatus(false);
+    }, false);
+    canvasEl.addEventListener('mousedown', (evt) => {
+      console.log('mousedown');
+      gameClient.setMouseDownStatus(true);
+      gameClient.onMouseClick();
+    }, false);
   });
   document.querySelector('#playButton').click();
 });
