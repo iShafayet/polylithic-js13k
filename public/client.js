@@ -7,11 +7,20 @@ const COLOR_OWN_DRONE_FILL = '#00BFA5';
 const COLOR_OPPONENT_DRONE_FILL = '#DD2C00';
 const COLOR_OWN_SELECTED_DRONE_FILL = '#FAFAFA';
 
+/** 
+@class GameClient
+=========================================================================================
+Contains all of game logic. 
+Communicates with outside using the Outside instance.
+Communicates with server using the SocketClient instance.
+=========================================================================================
+*/
+
 class GameClient {
 
-  constructor({ canvasEl, eventHandler }) {
+  constructor({ canvasEl, outside }) {
     this.canvasEl = canvasEl;
-    this.eventHandler = eventHandler;
+    this.outside = outside;
     this.isGameRunning = false;
     this.socket = null;
     this.gameData = null;
@@ -26,17 +35,17 @@ class GameClient {
   }
 
   joinMatchmaking() {
-    this.eventHandler('message', { message: 'Waiting for opponent...' });
+    this.outside.showFullPageMessage({ message: 'Waiting for opponent...' });
     let socket = this.socket = io({ upgrade: false, transports: ["websocket"], reconnection: false });
 
     socket.on("disconnect", () => {
       this.isGameRunning = false;
-      this.eventHandler('message', { message: 'DISCONNECT! <br><br> You forfeited the game.', level: 'error' });
+      this.outside.showFullPageMessage({ message: 'DISCONNECT! <br><br> You forfeited the game.', level: 'error' });
     });
 
     socket.on("error", (err) => {
       this.isGameRunning = false;
-      this.eventHandler('message', { message: 'ERROR! <br><br> You forfeited the game.', level: 'error' });
+      this.outside.showFullPageMessage({ message: 'ERROR! <br><br> You forfeited the game.', level: 'error' });
     });
 
     socket.on("connect", () => {
@@ -47,7 +56,7 @@ class GameClient {
       // console.log("game-data", data)
       if (!this.isGameRunning) {
         this.isGameRunning = true;
-        this.eventHandler('game-start');
+        this.outside.notifyGameStart();
         this.secondaryLoop();
       }
       this.gameData = data;
@@ -151,9 +160,9 @@ class GameClient {
     this.drawBackdrop();
     this.drawMothership('own');
     this.drawMothership('opponent');
-    this.gameData.own.droneList.forEach(drone => this.drawDrone(drone, 'own'));
-    this.gameData.opponent.droneList.forEach(drone => this.drawDrone(drone, 'opponent'));
     this.gameData.stoneList.forEach(stone => this.drawStone(stone));
+    this.gameData.opponent.droneList.forEach(drone => this.drawDrone(drone, 'opponent'));
+    this.gameData.own.droneList.forEach(drone => this.drawDrone(drone, 'own'));
     this.updateFps();
   }
 
@@ -225,7 +234,7 @@ class GameClient {
         let { x: x1, y: y1 } = drone;
         return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
       })
-        .filter(({ d, drone }) => d < (drone.r+ 10))
+        .filter(({ d, drone }) => d < (drone.r + 10))
         .sort((a, b) => a.d - b.d);
       let drone = (nearby.length > 0 ? nearby[0].drone : null);
       if (drone) {
@@ -242,46 +251,80 @@ class GameClient {
 
 }
 
-window.addEventListener("load", () => {
-  document.querySelector('#playButton').addEventListener('click', () => {
-    document.querySelector('#intro').style.display = 'none';
-    let canvasEl = document.querySelector('#canvas');
-    let gameClient = new GameClient({
-      canvasEl,
-      eventHandler: (event, data = {}) => {
-        if (event === 'message') {
-          document.querySelector('#menu').style.display = 'flex';
-          document.querySelector('#message-box').style.display = 'block';
-          document.querySelector('#canvas').style.display = 'none';
-          let { message, level = 'info' } = data;
-          let color = {
-            'info': 'blue',
-            'error': 'red'
-          }[level];
-          document.querySelector('#message').style.color = color;
-          document.querySelector('#message').innerHTML = message;
-        } else if (event === 'game-start') {
-          document.querySelector('#menu').style.display = 'none';
-          document.querySelector('#canvas').style.display = 'block';
-        }
-      }
-    });
-    canvasEl.addEventListener('mousemove', (evt) => {
-      var rect = canvas.getBoundingClientRect();
-      gameClient.setMouseCoord({
-        x: evt.clientX - rect.left,
-        y: evt.clientY - rect.top
+
+
+/** 
+@class Outside
+=========================================================================================
+Interacts with UI and User
+=========================================================================================
+*/
+
+class Outside {
+
+  _el(querySelector) { return document.querySelector(querySelector); };
+
+  _on(querySelector, eventName, fn) { return this._el(querySelector).addEventListener(eventName, fn); };
+
+  _setDisplayStyle(querySelector, value) { return this._el(querySelector).style.display = value };
+
+  showFullPageMessage({ message, level = 'info' }) {
+    this._setDisplayStyle('#menu', 'flex');
+    this._setDisplayStyle('#message-box', 'block');
+    this._setDisplayStyle('#canvas', 'none');
+    let color = {
+      'info': 'blue',
+      'error': 'red'
+    }[level];
+    this._el('#message').style.color = color;
+    this._el('#message').innerHTML = message;
+  }
+
+  notifyGameStart() {
+    this._setDisplayStyle('#menu', 'none');
+    this._setDisplayStyle('#canvas', 'block');
+  }
+
+  start() {
+    this._on('#playButton', 'click', () => {
+      this._setDisplayStyle('#intro', 'none');
+      this._gameClient = new GameClient({
+        canvasEl: this._el('#canvas'),
+        outside: this
       });
-    }, false);
-    canvasEl.addEventListener('mouseup', (evt) => {
-      let isPrimary = (event.button === 0);
-      gameClient.setMouseDownStatus(isPrimary, false);
-      gameClient.onMouseClick(isPrimary);
-    }, false);
-    canvasEl.addEventListener('mousedown', (evt) => {
-      let isPrimary = (event.button === 0);
-      gameClient.setMouseDownStatus(isPrimary, true);
-    }, false);
-  });
-  document.querySelector('#playButton').click();
+
+      this._on('#canvas', 'mousemove', (evt) => {
+        var rect = canvas.getBoundingClientRect();
+        this._gameClient.setMouseCoord({
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        });
+      });
+
+      this._on('#canvas', 'mousedown', (evt) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.setMouseDownStatus(isPrimary, false);
+        this._gameClient.onMouseClick(isPrimary);
+      });
+
+      this._on('#canvas', 'mouseup', (event) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.setMouseDownStatus(isPrimary, true);
+      });
+
+    });
+    playButton.click();
+  }
+
+}
+
+/** 
+@code Wrapper
+=========================================================================================
+Interacts with UI and User
+=========================================================================================
+*/
+
+window.addEventListener("load", () => {
+  (new Outside()).start();
 });
