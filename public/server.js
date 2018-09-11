@@ -13,8 +13,7 @@ const DRONE_SPEED_PX_PER_MS = 0.09;
 
 class Game {
 
-  constructor({ playerList, eventHandler }) {
-    // this.playerList = playerList;
+  constructor({ eventHandler }) {
     this.eventHandler = eventHandler;
     this.data = null;
     this.isOngoing = false;
@@ -84,7 +83,7 @@ class Game {
       x: (playerNumber === 0 ? player.mothership.x + MOTHERSHIP_RADIUS * 2 : player.mothership.x - MOTHERSHIP_RADIUS * 2),
       y: player.mothership.y,
       r: DRONE_RADIUS,
-      carryingStone: 50,
+      carryingStone: 0,
       pathList: []
     };
     drone.pathList.push({
@@ -92,7 +91,8 @@ class Game {
       y1: drone.y,
       x2: GAME_WIDTH / 2,
       y2: GAME_HEIGHT / 2,
-      startDatetimeStamp: (Date.now())
+      startDatetimeStamp: (Date.now()),
+      origin: 'auto'
     });
     player.stoneReserve -= DRONE_PURCHASE_COST;
     player.droneList.push(drone);
@@ -156,6 +156,58 @@ class Game {
     });
   }
 
+  detectCollisions() {
+    const doesCollide = (p1, p2) => (Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2) <= Math.pow((p1.r + p2.r), 2));
+    this.data.playerList[0].droneList.slice(0).forEach((player1Drone, player1DroneIndex) => {
+      this.data.playerList[1].droneList.slice(0).forEach((player2Drone, player2DroneIndex) => {
+        if (doesCollide(player1Drone, player2Drone)) {
+          this.data.playerList[0].droneList.splice(player1DroneIndex, 1);
+          this.data.playerList[1].droneList.splice(player2DroneIndex, 1);
+        }
+      });
+    });
+    [0, 1].forEach(playerNumber => {
+      this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
+        this.data.stoneList.slice(0).forEach((stone, stoneIndex) => {
+          if (doesCollide(drone, stone)) {
+            this.data.stoneList.splice(stoneIndex, 1);
+            drone.carryingStone += stone.value;
+          }
+        });
+      });
+    });
+    [0, 1].forEach(playerNumber => {
+      this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
+        let player = this.data.playerList[playerNumber];
+        if (doesCollide(drone, player.mothership)) {
+          if (drone.carryingStone > 0) {
+            player.stoneReserve += drone.carryingStone;
+          }
+          if (drone.pathList.length === 0 || drone.pathList[0].origin !== 'auto') {
+            drone.carryingStone = 0;
+            drone.pathList[0] = {
+              origin: 'auto',
+              x1: drone.x,
+              y1: drone.y,
+              x2: GAME_WIDTH / 2,
+              y2: GAME_HEIGHT / 2,
+              startDatetimeStamp: (Date.now())
+            };
+          }
+        }
+      });
+    });
+    [0, 1].forEach(playerNumber => {
+      this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
+        let opponent = this.data.playerList[this.opponentOf(playerNumber)];
+        if (doesCollide(drone, opponent.mothership)) {
+          this.data.playerList[playerNumber].droneList.splice(droneIndex, 1);
+          opponent.mothership.health -= (DRONE_PURCHASE_COST + drone.carryingStone) * 5;
+        }
+      });
+    });
+  }
+
   loop() {
     if (!this.isOngoing) return;
     let now = Date.now();
@@ -165,6 +217,7 @@ class Game {
       this.spawnStone();
     }
     this.moveObjects(now, diff);
+    this.detectCollisions();
     this.publishGameData();
     setTimeout(() => this.loop(), 10);
   }

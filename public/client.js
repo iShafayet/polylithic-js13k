@@ -89,7 +89,7 @@ class GameClient {
     this.ctx.fill();
 
     let healthX = (x === 0 ? x + r : x - r);
-    let healthY = y - r;
+    let healthY = y - r * 2;
     this.drawHealth(healthX, healthY, health, MOTHERSHIP_MAX_HEALTH);
   }
 
@@ -111,12 +111,12 @@ class GameClient {
 
   drawHealth(x, y, value, max) {
     let factor = value / max;
-    let height = 20;
+    let height = 40;
     let width = 4;
-    this.ctx.fillStyle = 'red';
-    this.ctx.fillRect(x, y, width, height);
     this.ctx.fillStyle = 'green';
-    this.ctx.fillRect(x, y, width, (height * factor));
+    this.ctx.fillRect(x, y, width, height);
+    this.ctx.fillStyle = 'red';
+    this.ctx.fillRect(x, y, width, height - (height * factor));
   }
 
   drawDrone(drone, whose) {
