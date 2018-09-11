@@ -18,7 +18,8 @@ class GameClient {
     this.mouse = {
       x: 0,
       y: 0,
-      isPressed: false
+      isPressed: false,
+      isPrimary: true
     };
     this.fps = 0;
     this.joinMatchmaking();
@@ -158,7 +159,7 @@ class GameClient {
 
   drawCursor() {
     let { x, y, isPressed } = this.mouse;
-    this.ctx.strokeStyle = (isPressed? '#FFEB3B': '#4CAF50');
+    this.ctx.strokeStyle = (isPressed ? '#FFEB3B' : '#4CAF50');
     this.ctx.lineWidth = 1;
     this.ctx.moveTo(x - 15, y);
     this.ctx.lineTo(x + 15, y);
@@ -173,8 +174,8 @@ class GameClient {
     }
     if (this.selectedDrone) {
       let { x, y, r } = this.selectedDrone;
-      let { x: x2, y: y2,isPressed } = this.mouse;
-      this.ctx.strokeStyle = (isPressed? '#FFEB3B': '#4CAF50');
+      let { x: x2, y: y2, isPressed } = this.mouse;
+      this.ctx.strokeStyle = (isPressed ? '#FFEB3B' : '#4CAF50');
       this.ctx.lineWidth = 1;
       this.ctx.setLineDash([8, 6]);
       this.ctx.beginPath();
@@ -202,22 +203,35 @@ class GameClient {
     this.mouse.y = y;
   }
 
-  setMouseDownStatus(isPressed) {
+  setMouseDownStatus(isPrimary, isPressed) {
     this.mouse.isPressed = isPressed;
+    this.mouse.isPrimary = isPrimary;
   }
 
-  onMouseClick() {
+  onMouseClick(isPrimary) {
     if (!this.gameData) return;
     let { x, y } = this.mouse;
-    let drone = this.gameData.own.droneList.find(drone => {
-      let { x: x1, y: y1, r } = drone;
-      return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
-    });
-    if (drone) {
-      if (this.selectedDrone && this.selectedDrone.id === drone.id) {
-        this.selectedDrone = null;
-      } else {
+
+    if (isPrimary) {
+      let isClickingMothership = (() => {
+        let { x: x1, y: y1, r } = this.gameData.own.mothership;
+        return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
+      })();
+      if (isClickingMothership) {
+        this.socket.emit('command:spawn-drone', {});
+        return
+      }
+      let nearby = this.gameData.own.droneList.map(drone => {
+        let { x: x1, y: y1 } = drone;
+        return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
+      })
+        .filter(({ d, drone }) => d < (drone.r+ 10))
+        .sort((a, b) => a.d - b.d);
+      let drone = (nearby.length > 0 ? nearby[0].drone : null);
+      if (drone) {
         this.selectedDrone = drone;
+      } else {
+        this.selectedDrone = null;
       }
     } else {
       if (this.selectedDrone) {
@@ -260,13 +274,13 @@ window.addEventListener("load", () => {
       });
     }, false);
     canvasEl.addEventListener('mouseup', (evt) => {
-      console.log('mouseup');
-      gameClient.setMouseDownStatus(false);
+      let isPrimary = (event.button === 0);
+      gameClient.setMouseDownStatus(isPrimary, false);
+      gameClient.onMouseClick(isPrimary);
     }, false);
     canvasEl.addEventListener('mousedown', (evt) => {
-      console.log('mousedown');
-      gameClient.setMouseDownStatus(true);
-      gameClient.onMouseClick();
+      let isPrimary = (event.button === 0);
+      gameClient.setMouseDownStatus(isPrimary, true);
     }, false);
   });
   document.querySelector('#playButton').click();

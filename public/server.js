@@ -9,7 +9,7 @@ const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
-const DRONE_SPEED_PX_PER_MS = 0.04;
+const DRONE_SPEED_PX_PER_MS = 0.09;
 
 class Game {
 
@@ -74,6 +74,7 @@ class Game {
 
   spawnDrone(playerNumber) {
     let player = this.data.playerList[playerNumber];
+    console.log(player.stoneReserve, DRONE_PURCHASE_COST)
     if (player.stoneReserve < DRONE_PURCHASE_COST) {
       this.eventHandler('message', [playerNumber], { message: "Not enough stones." });
       return;
@@ -94,6 +95,7 @@ class Game {
       y2: GAME_HEIGHT / 2,
       startDatetimeStamp: (Date.now())
     });
+    player.stoneReserve -= DRONE_PURCHASE_COST;
     player.droneList.push(drone);
   }
 
@@ -225,7 +227,7 @@ module.exports = {
       playerList,
       eventHandler: (event, playerNumber, data) => {
         // console.log(event, playerNumber, data);
-        playerList[playerNumber].emit("game-data", data);
+        playerList[playerNumber].emit(event, data);
       }
     });
 
@@ -234,6 +236,9 @@ module.exports = {
       player.playerNumber = playerNumber;
       player.on('command:move-drone', ({ x, y, id }) => {
         game.moveDrone(playerNumber, { x, y, id });
+      });
+      player.on('command:spawn-drone', ({ x, y, id }) => {
+        game.spawnDrone(playerNumber);
       });
     });
 
