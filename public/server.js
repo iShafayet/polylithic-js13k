@@ -8,7 +8,7 @@ const MOTHERSHIP_RADIUS = 50;
 const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
-const STONE_SPAWN_DELAY_MX = 500;
+const STONE_SPAWN_DELAY_MX = 2500;
 const DRONE_SPEED_PX_PER_MS = 0.04;
 
 class Game {
@@ -153,7 +153,6 @@ class Game {
         drone.y = y;
       });
     });
-    this.publishGameData();
   }
 
   loop() {
@@ -165,11 +164,24 @@ class Game {
       this.spawnStone();
     }
     this.moveObjects(now, diff);
+    this.publishGameData();
     setTimeout(() => this.loop(), 10);
   }
 
   forfeit(playerNumber, reason) {
 
+  }
+
+  moveDrone(playerNumber, { x, y, id }) {
+    let drone = this.data.playerList[playerNumber].droneList.find(drone => drone.id === id);
+    if (!drone) return;
+    drone.pathList[0] = {
+      x1: drone.x,
+      y1: drone.y,
+      x2: x,
+      y2: y,
+      startDatetimeStamp: (Date.now())
+    };
   }
 
 }
@@ -220,6 +232,9 @@ module.exports = {
     playerList.forEach((player, playerNumber) => {
       player.game = game;
       player.playerNumber = playerNumber;
+      player.on('command:move-drone', ({ x, y, id }) => {
+        game.moveDrone(playerNumber, { x, y, id });
+      });
     });
 
     game.start();

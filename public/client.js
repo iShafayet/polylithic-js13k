@@ -158,7 +158,7 @@ class GameClient {
 
   drawCursor() {
     let { x, y, isPressed } = this.mouse;
-    this.ctx.strokeStyle = '#FCE4EC';
+    this.ctx.strokeStyle = (isPressed? '#FFEB3B': '#4CAF50');
     this.ctx.lineWidth = 1;
     this.ctx.moveTo(x - 15, y);
     this.ctx.lineTo(x + 15, y);
@@ -173,8 +173,8 @@ class GameClient {
     }
     if (this.selectedDrone) {
       let { x, y, r } = this.selectedDrone;
-      let { x: x2, y: y2 } = this.mouse;
-      this.ctx.strokeStyle = '#B0BEC5';
+      let { x: x2, y: y2,isPressed } = this.mouse;
+      this.ctx.strokeStyle = (isPressed? '#FFEB3B': '#4CAF50');
       this.ctx.lineWidth = 1;
       this.ctx.setLineDash([8, 6]);
       this.ctx.beginPath();
@@ -214,15 +214,14 @@ class GameClient {
       return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
     });
     if (drone) {
-      if (this.selectedDrone && this.selectedDrone.id === drone.id){
+      if (this.selectedDrone && this.selectedDrone.id === drone.id) {
         this.selectedDrone = null;
       } else {
         this.selectedDrone = drone;
       }
     } else {
       if (this.selectedDrone) {
-        this.eventHandler('message', { message: 'Waiting for opponent...' });
-
+        this.socket.emit('command:move-drone', { x, y, id: this.selectedDrone.id });
       }
     }
   }
