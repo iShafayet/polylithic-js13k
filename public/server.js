@@ -74,7 +74,6 @@ class Game {
 
   spawnDrone(playerNumber) {
     let player = this.data.playerList[playerNumber];
-    console.log(player.stoneReserve, DRONE_PURCHASE_COST)
     if (player.stoneReserve < DRONE_PURCHASE_COST) {
       this.eventHandler('message', [playerNumber], { message: "Not enough stones." });
       return;
@@ -85,7 +84,7 @@ class Game {
       x: (playerNumber === 0 ? player.mothership.x + MOTHERSHIP_RADIUS * 2 : player.mothership.x - MOTHERSHIP_RADIUS * 2),
       y: player.mothership.y,
       r: DRONE_RADIUS,
-      carryingStone: null,
+      carryingStone: 50,
       pathList: []
     };
     drone.pathList.push({

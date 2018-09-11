@@ -6,13 +6,14 @@ const COLOR_OPPONENT_MOTHERSHIP_FILL = '#FF5722';
 const COLOR_OWN_DRONE_FILL = '#00BFA5';
 const COLOR_OPPONENT_DRONE_FILL = '#DD2C00';
 const COLOR_OWN_SELECTED_DRONE_FILL = '#FAFAFA';
+const COLOR_OPPONENT_DRONE_CARRYING_FILL = 'rgba(0, 200, 100, 0.1)';
+const COLOR_OWN_DRONE_CARRYING_FILL = 'rgba(100, 200, 0, 0.1)';
 
 /** 
 @class GameClient
 =========================================================================================
 Contains all of game logic. 
 Communicates with outside using the Outside instance.
-Communicates with server using the SocketClient instance.
 =========================================================================================
 */
 
@@ -31,10 +32,10 @@ class GameClient {
       isPrimary: true
     };
     this.fps = 0;
-    this.joinMatchmaking();
+    this.setUpWebsocketAndInitiateMatchmaking();
   }
 
-  joinMatchmaking() {
+  setUpWebsocketAndInitiateMatchmaking() {
     this.outside.showFullPageMessage({ message: 'Waiting for opponent...' });
     let socket = this.socket = io({ upgrade: false, transports: ["websocket"], reconnection: false });
 
@@ -104,6 +105,13 @@ class GameClient {
 
   drawDrone(drone, whose) {
     let { x, y, r, carryingStone, pathList, id } = drone;
+
+    this.ctx.fillStyle = (whose === 'own' ? COLOR_OWN_DRONE_CARRYING_FILL : COLOR_OPPONENT_DRONE_CARRYING_FILL);;
+    this.ctx.beginPath();
+    let carryingRad = (this.selectedDrone && this.selectedDrone.id === id) ? r + carryingStone + 5 : r + carryingStone;
+    this.ctx.arc(x, y, carryingRad, 0, 2 * Math.PI, false);
+    this.ctx.fill();
+
     if (whose === 'own' && this.selectedDrone && this.selectedDrone.id === id) {
       this.ctx.fillStyle = COLOR_OWN_SELECTED_DRONE_FILL;
       this.ctx.beginPath();
