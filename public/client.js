@@ -93,6 +93,22 @@ class GameClient {
     this.drawHealth(healthX, healthY, health, MOTHERSHIP_MAX_HEALTH);
   }
 
+  drawStoneReserves(whose) {
+    let { stoneReserve } = this.gameData[whose];
+    let { x, r } = this.gameData[whose].mothership;
+
+    if (whose === 'own') {
+      this.ctx.fillStyle = COLOR_OWN_MOTHERSHIP_FILL;
+    } else {
+      this.ctx.fillStyle = COLOR_OPPONENT_MOTHERSHIP_FILL;
+    }
+
+    let textX = (x === 0 ? x + r : x - r);
+    this.ctx.font = '48px serif';
+    this.ctx.fillText(String(stoneReserve), textX, 100);
+
+  }
+
   drawHealth(x, y, value, max) {
     let factor = value / max;
     let height = 20;
@@ -168,6 +184,8 @@ class GameClient {
     this.drawBackdrop();
     this.drawMothership('own');
     this.drawMothership('opponent');
+    this.drawStoneReserves('own');
+    this.drawStoneReserves('opponent');
     this.gameData.stoneList.forEach(stone => this.drawStone(stone));
     this.gameData.opponent.droneList.forEach(drone => this.drawDrone(drone, 'opponent'));
     this.gameData.own.droneList.forEach(drone => this.drawDrone(drone, 'own'));
