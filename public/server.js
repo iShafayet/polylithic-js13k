@@ -9,7 +9,7 @@ const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
-const DRONE_SPEED_PX_PER_MS = 0.09;
+const DRONE_SPEED_PX_PER_MS = 0.20;
 
 class Game {
 
@@ -205,6 +205,18 @@ class Game {
           opponent.mothership.health -= (DRONE_PURCHASE_COST + drone.carryingStone) * 5;
         }
       });
+    });
+  }
+
+  prepareVerdict() {
+    [0, 1].forEach(playerNumber => {
+      let player = this.data.playerList[playerNumber];
+      let opponent = this.data.playerList[this.opponentOf(playerNumber)];
+      if (player.mothership.health <= 0) {
+        this.isOngoing = false;
+        this.eventHandler('game-end', playerNumber, { verdict: 'defeat', message: 'You ran out of health' });
+        this.eventHandler('game-end', this.opponentOf(playerNumber), { verdict: 'victory', message: 'You destroyed your opponent' });
+      }
     });
   }
 
