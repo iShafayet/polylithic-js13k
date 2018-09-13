@@ -269,7 +269,6 @@ class Game {
 
 }
 
-
 let pendingPlayer = null;
 
 module.exports = {
