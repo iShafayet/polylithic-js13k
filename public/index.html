@@ -66,10 +66,23 @@
 
     #message {
       text-align: center;
+      font-size: 36px;
     }
 
     #canvas {
       cursor: none;
+    }
+
+    #big-message {
+      color: blue;
+      font-size: 52px;
+      text-align: center;
+    }
+
+    #reload-hint {
+      margin-top: 200px;
+      font-size: 25px;
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -107,6 +120,8 @@
     <!--  message-box - start -->
     <div id="message-box" style="display: none;">
       <div id="message">...</div>
+      <div id="big-message">...</div>
+      <div id="reload-hint" onclick="window.location.reload()">Click here or reload this page to start anew</div>
     </div>
     <!--  message-box - start -->
 

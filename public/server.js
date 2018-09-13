@@ -202,7 +202,9 @@ class Game {
         let opponent = this.data.playerList[this.opponentOf(playerNumber)];
         if (doesCollide(drone, opponent.mothership)) {
           this.data.playerList[playerNumber].droneList.splice(droneIndex, 1);
-          opponent.mothership.health -= (DRONE_PURCHASE_COST + drone.carryingStone) * 5;
+          let damage = (DRONE_PURCHASE_COST + drone.carryingStone);
+          opponent.mothership.health -= damage;
+          console.log(`Player ${playerNumber} does ${damage} damage`);
         }
       });
     });
@@ -210,12 +212,25 @@ class Game {
 
   prepareVerdict() {
     [0, 1].forEach(playerNumber => {
+      if (!this.isOngoing) return;
       let player = this.data.playerList[playerNumber];
       let opponent = this.data.playerList[this.opponentOf(playerNumber)];
       if (player.mothership.health <= 0) {
+        console.log(`Player ${this.opponentOf(playerNumber)} wins`);
         this.isOngoing = false;
         this.eventHandler('game-end', playerNumber, { verdict: 'defeat', message: 'You ran out of health' });
         this.eventHandler('game-end', this.opponentOf(playerNumber), { verdict: 'victory', message: 'You destroyed your opponent' });
+      }
+    });
+    [0, 1].forEach(playerNumber => {
+      if (!this.isOngoing) return;
+      let player = this.data.playerList[playerNumber];
+      let opponent = this.data.playerList[this.opponentOf(playerNumber)];
+      if (opponent.stoneReserve >= WINNING_RESERVES) {
+        console.log(`Player ${this.opponentOf(playerNumber)} wins (stones)`);
+        this.isOngoing = false;
+        this.eventHandler('game-end', playerNumber, { verdict: 'defeat', message: 'Your opponent beat you to 1000 stones' });
+        this.eventHandler('game-end', this.opponentOf(playerNumber), { verdict: 'victory', message: 'Your mothership is back online.' });
       }
     });
   }
@@ -231,6 +246,7 @@ class Game {
     this.moveObjects(now, diff);
     this.detectCollisions();
     this.publishGameData();
+    this.prepareVerdict();
     setTimeout(() => this.loop(), 10);
   }
 

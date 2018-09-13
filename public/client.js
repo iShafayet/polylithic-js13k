@@ -9,6 +9,8 @@ const COLOR_OWN_SELECTED_DRONE_FILL = '#FAFAFA';
 const COLOR_OPPONENT_DRONE_CARRYING_FILL = 'rgba(0, 200, 100, 0.1)';
 const COLOR_OWN_DRONE_CARRYING_FILL = 'rgba(100, 200, 0, 0.1)';
 
+const DRONE_SELECTION_RADIUS = 50;
+
 /** 
 @class GameClient
 =========================================================================================
@@ -64,6 +66,20 @@ class GameClient {
       this.prepareCanvas();
       this.mainLoop();
     });
+
+    socket.on("game-end", (data) => {
+      this.isGameRunning = false;
+      let { verdict, message } = data;
+      let bigMessage, level;
+      if (verdict === 'victory') {
+        bigMessage = 'YOU WIN';
+        level = 'success';
+      } else {
+        bigMessage = 'BETTER LUCK NEXT TIME'
+        level = 'error';
+      }
+      this.outside.showFullPageMessage({ message, bigMessage, level });
+    });
   }
 
   prepareCanvas() {
@@ -103,13 +119,14 @@ class GameClient {
       this.ctx.fillStyle = COLOR_OPPONENT_MOTHERSHIP_FILL;
     }
 
-    let textX = (x === 0 ? x + r : x - r);
+    let textX = (x === 0 ? x + r : x - r * 2);
     this.ctx.font = '48px serif';
     this.ctx.fillText(String(stoneReserve), textX, 100);
 
   }
 
   drawHealth(x, y, value, max) {
+    value = Math.max(value, 0);
     let factor = value / max;
     let height = 40;
     let width = 4;
@@ -224,6 +241,7 @@ class GameClient {
   }
 
   secondaryLoop() {
+    if (!this.isGameRunning) return;
     if (this.gameData) {
       this.drawCursor();
       this.drawPossibleTargetPath();
@@ -260,7 +278,7 @@ class GameClient {
         let { x: x1, y: y1 } = drone;
         return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
       })
-        .filter(({ d, drone }) => d < (drone.r + 10))
+        .filter(({ d, drone }) => d < (drone.r + DRONE_SELECTION_RADIUS))
         .sort((a, b) => a.d - b.d);
       let drone = (nearby.length > 0 ? nearby[0].drone : null);
       if (drone) {
@@ -294,16 +312,19 @@ class Outside {
 
   _setDisplayStyle(querySelector, value) { return this._el(querySelector).style.display = value };
 
-  showFullPageMessage({ message, level = 'info' }) {
+  showFullPageMessage({ message, level = 'info', bigMessage = '' }) {
     this._setDisplayStyle('#menu', 'flex');
     this._setDisplayStyle('#message-box', 'block');
     this._setDisplayStyle('#canvas', 'none');
     let color = {
       'info': 'blue',
+      'success': 'green',
       'error': 'red'
     }[level];
     this._el('#message').style.color = color;
     this._el('#message').innerHTML = message;
+    this._el('#big-message').style.color = color;
+    this._el('#big-message').innerHTML = bigMessage;
   }
 
   notifyGameStart() {
