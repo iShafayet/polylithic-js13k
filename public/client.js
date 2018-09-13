@@ -360,7 +360,7 @@ class Outside {
       });
 
     });
-    playButton.click();
+    // playButton.click(); // FOR TESTING
   }
 
 }

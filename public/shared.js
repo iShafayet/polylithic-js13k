@@ -1,4 +1,4 @@
 "use strict";
 
-const MOTHERSHIP_MAX_HEALTH = 200;
-const WINNING_RESERVES = 50;
+const MOTHERSHIP_MAX_HEALTH = 20;
+const WINNING_RESERVES = 30;

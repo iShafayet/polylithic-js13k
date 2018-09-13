@@ -9,7 +9,7 @@ const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
-const DRONE_SPEED_PX_PER_MS = 0.20;
+const DRONE_SPEED_PX_PER_MS = 0.14;
 
 class Game {
 
@@ -251,7 +251,8 @@ class Game {
   }
 
   forfeit(playerNumber, reason) {
-
+    this.isOngoing = false;
+    this.eventHandler('game-end', this.opponentOf(playerNumber), { verdict: 'victory', message: 'Your opponent quits!' });
   }
 
   moveDrone(playerNumber, { x, y, id }) {
