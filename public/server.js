@@ -2,11 +2,11 @@
 
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
-const DRONE_PURCHASE_COST = 5;
+const DRONE_PURCHASE_COST = 10;
 const DRONE_RADIUS = 10;
 const MOTHERSHIP_RADIUS = 50;
 const STONE_MIN_RADIUS = 20;
-const STONE_MAX_VALUE = 50;
+const STONE_MAX_VALUE = 10;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
 const STONE_MAX_UNCLAIMED_ALLOWED = 1000;
@@ -233,6 +233,8 @@ class Game {
       this.data.playerList[0].stoneReserve <= 4 &&
       this.data.playerList[1].droneList.length === 0 &&
       this.data.playerList[1].stoneReserve <= 4) {
+      console.log(`Both player looses`);
+      this.isOngoing = false;
       this.eventHandler('game-end', 0, { verdict: 'defeat', message: 'You ran out of options.' });
       this.eventHandler('game-end', 1, { verdict: 'defeat', message: 'You ran out of options.' });
     }

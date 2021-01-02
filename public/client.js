@@ -95,6 +95,10 @@ class GameClient {
 
   drawMothership(whose) {
     let { health, x, y, r } = this.gameData[whose].mothership;
+
+    // let uncertainty = (Math.floor(Date.now() / 500) % 2 === 0) * 1;
+    // r += uncertainty;
+
     if (whose === 'own') {
       this.ctx.fillStyle = COLOR_OWN_MOTHERSHIP_FILL;
     } else {
@@ -122,7 +126,6 @@ class GameClient {
     let textX = (x === 0 ? x + r : x - r * 2);
     this.ctx.font = '48px serif';
     this.ctx.fillText(String(stoneReserve), textX, 100);
-
   }
 
   drawHealth(x, y, value, max) {
@@ -176,8 +179,10 @@ class GameClient {
   drawStone(stone) {
     let { x, y, r } = stone;
     this.ctx.fillStyle = 'yellow';
-    let width = r;
-    let height = r;
+    // let uncertainty = Math.round(Math.random()) * 2;
+    let uncertainty = (Math.floor(Date.now() / 100) % 2 === 0) * 2;
+    let width = r + uncertainty;
+    let height = r + uncertainty;
     this.ctx.beginPath();
     this.ctx.moveTo(x + width * 0.5, y);
     this.ctx.lineTo(x, y + height * 0.5);
@@ -265,18 +270,24 @@ class GameClient {
     this.mouse.isPrimary = isPrimary;
   }
 
-  onMouseClick(isPrimary) {
-    if (!this.gameData) return;
+  onMouseDoubleClick(isPrimary) {
     let { x, y } = this.mouse;
 
     let isClickingMothership = (() => {
       let { x: x1, y: y1, r } = this.gameData.own.mothership;
       return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
     })();
+
     if (isClickingMothership) {
       this.socket.emit('command:spawn-drone', {});
       return
     }
+  }
+
+  onMouseClick(isPrimary) {
+    if (!this.gameData) return;
+    let { x, y } = this.mouse;
+
     let nearby = this.gameData.own.droneList.map(drone => {
       let { x: x1, y: y1 } = drone;
       return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
@@ -352,10 +363,20 @@ class Outside {
         });
       });
 
+      this._on('#canvas', 'dblclick', (event) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.onMouseDoubleClick(isPrimary);
+      });
+
+      this._on('#canvas', 'click', (event) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.onMouseClick(isPrimary);
+      });
+
       this._on('#canvas', 'mousedown', (event) => {
         let isPrimary = (event.button === 0);
         this._gameClient.setMouseDownStatus(isPrimary, false);
-        this._gameClient.onMouseClick(isPrimary);
+        // this._gameClient.onMouseClick(isPrimary);
       });
 
       this._on('#canvas', 'mouseup', (event) => {
