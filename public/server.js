@@ -9,6 +9,7 @@ const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
+const STONE_MAX_UNCLAIMED_ALLOWED = 1000;
 const DRONE_SPEED_PX_PER_MS = 0.1;
 
 class Game {
@@ -61,6 +62,9 @@ class Game {
   }
 
   spawnStone() {
+    let sum = this.data.stoneList.reduce((sum, stone) => { return sum + stone.value; }, 0);
+    if (sum >= STONE_MAX_UNCLAIMED_ALLOWED) return;
+
     let value = Math.floor(Math.random() * (STONE_MAX_VALUE - STONE_MIN_VALUE)) + STONE_MIN_VALUE;
     let stone = {
       x: Math.floor(Math.random() * GAME_WIDTH),
@@ -173,17 +177,6 @@ class Game {
         }
       });
     });
-
-    // a drone touching a drone of the same player
-    // [0, 1].forEach(playerNumber => {
-    //   this.data.playerList[playerNumber].droneList.slice(0).forEach((player1Drone1, player1Drone1Index) => {
-    //     this.data.playerList[playerNumber].droneList.slice(0).forEach((player1Drone2, player1Drone2Index) => {
-    //       if (doesCollide(player1Drone1, player1Drone2)) {
-    //         player1Drone1.pathList = [];
-    //       }
-    //     });
-    //   });
-    // });
 
     // a drone touching a stone
     [0, 1].forEach(playerNumber => {
