@@ -265,32 +265,28 @@ class GameClient {
     if (!this.gameData) return;
     let { x, y } = this.mouse;
 
-    if (isPrimary) {
-      let isClickingMothership = (() => {
-        let { x: x1, y: y1, r } = this.gameData.own.mothership;
-        return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
-      })();
-      if (isClickingMothership) {
-        this.socket.emit('command:spawn-drone', {});
-        return
-      }
-      let nearby = this.gameData.own.droneList.map(drone => {
-        let { x: x1, y: y1 } = drone;
-        return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
-      })
-        .filter(({ d, drone }) => d < (drone.r + DRONE_SELECTION_RADIUS))
-        .sort((a, b) => a.d - b.d);
-      let drone = (nearby.length > 0 ? nearby[0].drone : null);
-      if (drone) {
-        this.selectedDrone = drone;
-      } else {
-        this.selectedDrone = null;
-      }
-    } else {
-      if (this.selectedDrone) {
-        this.socket.emit('command:move-drone', { x, y, id: this.selectedDrone.id });
-      }
+    let isClickingMothership = (() => {
+      let { x: x1, y: y1, r } = this.gameData.own.mothership;
+      return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
+    })();
+    if (isClickingMothership) {
+      this.socket.emit('command:spawn-drone', {});
+      return
     }
+    let nearby = this.gameData.own.droneList.map(drone => {
+      let { x: x1, y: y1 } = drone;
+      return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
+    })
+      .filter(({ d, drone }) => d < (drone.r + DRONE_SELECTION_RADIUS))
+      .sort((a, b) => a.d - b.d);
+    let drone = (nearby.length > 0 ? nearby[0].drone : null);
+    if (drone) {
+      this.selectedDrone = drone;
+    }
+    if (this.selectedDrone) {
+      this.socket.emit('command:move-drone', { x, y, id: this.selectedDrone.id });
+    }
+
   }
 
 }
@@ -340,15 +336,15 @@ class Outside {
         outside: this
       });
 
-      this._on('#canvas', 'mousemove', (evt) => {
+      this._on('#canvas', 'mousemove', (event) => {
         var rect = canvas.getBoundingClientRect();
         this._gameClient.setMouseCoord({
-          x: evt.clientX - rect.left,
-          y: evt.clientY - rect.top
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
         });
       });
 
-      this._on('#canvas', 'mousedown', (evt) => {
+      this._on('#canvas', 'mousedown', (event) => {
         let isPrimary = (event.button === 0);
         this._gameClient.setMouseDownStatus(isPrimary, false);
         this._gameClient.onMouseClick(isPrimary);
