@@ -139,9 +139,10 @@ class GameClient {
   drawDrone(drone, whose) {
     let { x, y, r, carryingStone, pathList, id } = drone;
 
+    let carryingStoneDownscaled = Math.ceil(carryingStone / 5);
     this.ctx.fillStyle = (whose === 'own' ? COLOR_OWN_DRONE_CARRYING_FILL : COLOR_OPPONENT_DRONE_CARRYING_FILL);;
     this.ctx.beginPath();
-    let carryingRad = (this.selectedDrone && this.selectedDrone.id === id) ? r + carryingStone + 5 : r + carryingStone;
+    let carryingRad = (this.selectedDrone && this.selectedDrone.id === id) ? r + carryingStoneDownscaled + 5 : r + carryingStoneDownscaled;
     this.ctx.arc(x, y, carryingRad, 0, 2 * Math.PI, false);
     this.ctx.fill();
 
@@ -190,7 +191,7 @@ class GameClient {
   updateFps() {
     if (!this.__fps__time) this.__fps__time = Date.now();
     if (Date.now() - this.__fps__time > 1000) {
-      document.getElementById('fps').innerHTML = '' + this.fps;
+      document.getElementById('fps').innerHTML = 'FPS: ' + this.fps;
       this.__fps__time = Date.now();
       this.fps = 0;
     }
@@ -243,6 +244,9 @@ class GameClient {
   secondaryLoop() {
     if (!this.isGameRunning) return;
     if (this.gameData) {
+      if (!this.selectedDrone && this.gameData.own.droneList.length > 0) {
+        this.selectedDrone = this.gameData.own.droneList[0];
+      }
       this.drawCursor();
       this.drawPossibleTargetPath();
     }
@@ -338,9 +342,13 @@ class Outside {
 
       this._on('#canvas', 'mousemove', (event) => {
         var rect = canvas.getBoundingClientRect();
+
+        let scaleX = canvas.width / rect.width;
+        let scaleY = canvas.height / rect.height;
+
         this._gameClient.setMouseCoord({
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top
+          x: (event.clientX - rect.left) * scaleX,
+          y: (event.clientY - rect.top) * scaleY
         });
       });
 

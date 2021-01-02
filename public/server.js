@@ -9,7 +9,7 @@ const STONE_MIN_RADIUS = 20;
 const STONE_MAX_VALUE = 50;
 const STONE_MIN_VALUE = 2;
 const STONE_SPAWN_DELAY_MX = 2500;
-const DRONE_SPEED_PX_PER_MS = 0.14;
+const DRONE_SPEED_PX_PER_MS = 0.1;
 
 class Game {
 
@@ -89,8 +89,8 @@ class Game {
     drone.pathList.push({
       x1: drone.x,
       y1: drone.y,
-      x2: GAME_WIDTH / 2,
-      y2: GAME_HEIGHT / 2,
+      x2: (playerNumber === 0 ? GAME_WIDTH / 4 : GAME_WIDTH - (GAME_WIDTH / 4)),
+      y2: this.__addNumericVariation(GAME_HEIGHT / 2, 100),
       startDatetimeStamp: (Date.now()),
       origin: 'auto'
     });
@@ -156,8 +156,15 @@ class Game {
     });
   }
 
+  __addNumericVariation(originalValue, variationAmount) {
+    let rnd = Math.round((Math.random() * variationAmount * 2) - variationAmount);
+    return originalValue + rnd;
+  }
+
   detectCollisions() {
     const doesCollide = (p1, p2) => (Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2) <= Math.pow((p1.r + p2.r), 2));
+
+    // a drones of a player colliding with a drone of the other player
     this.data.playerList[0].droneList.slice(0).forEach((player1Drone, player1DroneIndex) => {
       this.data.playerList[1].droneList.slice(0).forEach((player2Drone, player2DroneIndex) => {
         if (doesCollide(player1Drone, player2Drone)) {
@@ -166,6 +173,19 @@ class Game {
         }
       });
     });
+
+    // a drone touching a drone of the same player
+    // [0, 1].forEach(playerNumber => {
+    //   this.data.playerList[playerNumber].droneList.slice(0).forEach((player1Drone1, player1Drone1Index) => {
+    //     this.data.playerList[playerNumber].droneList.slice(0).forEach((player1Drone2, player1Drone2Index) => {
+    //       if (doesCollide(player1Drone1, player1Drone2)) {
+    //         player1Drone1.pathList = [];
+    //       }
+    //     });
+    //   });
+    // });
+
+    // a drone touching a stone
     [0, 1].forEach(playerNumber => {
       this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
         this.data.stoneList.slice(0).forEach((stone, stoneIndex) => {
@@ -176,6 +196,8 @@ class Game {
         });
       });
     });
+
+    // a drone touching own mothership
     [0, 1].forEach(playerNumber => {
       this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
         let player = this.data.playerList[playerNumber];
@@ -189,14 +211,16 @@ class Game {
               origin: 'auto',
               x1: drone.x,
               y1: drone.y,
-              x2: GAME_WIDTH / 2,
-              y2: GAME_HEIGHT / 2,
+              x2: (playerNumber === 0 ? GAME_WIDTH / 4 : GAME_WIDTH - (GAME_WIDTH / 4)),
+              y2: this.__addNumericVariation(GAME_HEIGHT / 2, 100),
               startDatetimeStamp: (Date.now())
             };
           }
         }
       });
     });
+
+    // a drone touching opponent mothership
     [0, 1].forEach(playerNumber => {
       this.data.playerList[playerNumber].droneList.slice(0).forEach((drone, droneIndex) => {
         let opponent = this.data.playerList[this.opponentOf(playerNumber)];

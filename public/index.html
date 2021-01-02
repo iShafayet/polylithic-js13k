@@ -27,6 +27,8 @@
     }
 
     #fps {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
       position: fixed;
       top: 20px;
       right: 20px;
@@ -83,6 +85,7 @@
       margin-top: 200px;
       font-size: 25px;
       text-decoration: underline;
+      cursor: pointer;
     }
 
     b.big {
@@ -92,8 +95,9 @@
 </head>
 
 <body oncontextmenu="return false;">
-  <div id="fps">00</div>
-  <canvas id="canvas" width="1280" height="720" style="display: none;" oncontextmenu="return false;"></canvas>
+  <div id="fps"></div>
+  <canvas id="canvas" width="1280" height="720" style="display: none; max-width: 100vw;"
+    oncontextmenu="return false;"></canvas>
   <div id="menu">
 
     <!--  intro - start -->
@@ -104,8 +108,10 @@
         <b>mothership</b>'s power core is
         <b>offline</b>. You must create
         <b>drones</b> and gather
-        <b>uranium stones</b> jumping in and out of existence.</p>
-      <p>Your opponent is trying to do the exact same thing. Either beat him to a <b>350 stone reserves</b> or <b>destroy his mothership</b>.</p>
+        <b>uranium stones</b> jumping in and out of existence.
+      </p>
+      <p>Your opponent is trying to do the exact same thing. Either beat him to a <b>350 stone reserves</b> or
+        <b>destroy his mothership</b>.</p>
       <b lass="big">Rules</b>
       <ul>
         <li>Drones pick up uranium stones on touch. They have to carry them back to the mothership.</li>
