@@ -228,6 +228,15 @@ class Game {
   }
 
   prepareVerdict() {
+
+    if (this.data.playerList[0].droneList.length === 0 &&
+      this.data.playerList[0].stoneReserve <= 4 &&
+      this.data.playerList[1].droneList.length === 0 &&
+      this.data.playerList[1].stoneReserve <= 4) {
+      this.eventHandler('game-end', 0, { verdict: 'defeat', message: 'You ran out of options.' });
+      this.eventHandler('game-end', 1, { verdict: 'defeat', message: 'You ran out of options.' });
+    }
+
     [0, 1].forEach(playerNumber => {
       if (!this.isOngoing) return;
       let player = this.data.playerList[playerNumber];
