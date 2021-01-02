@@ -27,6 +27,8 @@
     }
 
     #fps {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
       position: fixed;
       top: 20px;
       right: 20px;
@@ -34,7 +36,8 @@
     }
 
     #menu {
-      width: 1280px;
+      max-width: 1280px;
+      padding: 6px;
       height: 720px;
       display: flex;
       align-items: center;
@@ -83,6 +86,7 @@
       margin-top: 200px;
       font-size: 25px;
       text-decoration: underline;
+      cursor: pointer;
     }
 
     b.big {
@@ -92,31 +96,35 @@
 </head>
 
 <body oncontextmenu="return false;">
-  <div id="fps">00</div>
-  <canvas id="canvas" width="1280" height="720" style="display: none;" oncontextmenu="return false;"></canvas>
+  <div id="fps"></div>
+  <canvas id="canvas" width="1280" height="720" style="display: none; max-width: 100vw;"
+    oncontextmenu="return false;"></canvas>
   <div id="menu">
 
     <!--  intro - start -->
     <div id="intro">
       <div id="title">PolyLithic</div>
-      <p>PolyLithic is a fast paced, skill based, sci-fi MOBA.</p>
+      <p>PolyLithic is a fast paced, skill based, sci-fi 2 player standoff.</p>
       <p>Your
         <b>mothership</b>'s power core is
         <b>offline</b>. You must create
         <b>drones</b> and gather
-        <b>uranium stones</b> jumping in and out of existence.</p>
-      <p>Your opponent is trying to do the exact same thing. Either beat him to a <b>350 stone reserves</b> or <b>destroy his mothership</b>.</p>
+        <b>uranium stones</b> jumping in and out of existence.
+      </p>
+      <p>Your opponent is trying to do the exact same thing. Beat them to a <b>500 stone reserves</b> or
+        <b>destroy their mothership</b> to win.
+      </p>
       <b lass="big">Rules</b>
       <ul>
-        <li>Drones pick up uranium stones on touch. They have to carry them back to the mothership.</li>
+        <li>Use drones pick up stones. Gather enough and safely bring back to the mothership.</li>
         <li>Opposing drones get destroyed when they clash.</li>
-        <li>Drone damage enemy mothership by the amount of stone they are carrying.</li>
+        <li>Every mothership has <b>200 HP</b>.</li>
+        <li>Drone damage enemy mothership by <b>10 HP</b>.</li>
       </ul>
       <b class="big">Controls</b>
       <ul>
-        <li>Left click own mothership to create new drone. Each drone cost 5 stones.</li>
-        <li>Left click a drone to select it.</li>
-        <li>Right click an empty space to move selected drone there.</li>
+        <li>Click a drone to select it. Click again to move.</li>
+        <li>Double-click own mothership to create new drones. Each drone cost 10 stones.</li>
       </ul>
       <div id="playButton">
         <a>Join the game!</a>

@@ -95,6 +95,10 @@ class GameClient {
 
   drawMothership(whose) {
     let { health, x, y, r } = this.gameData[whose].mothership;
+
+    // let uncertainty = (Math.floor(Date.now() / 500) % 2 === 0) * 1;
+    // r += uncertainty;
+
     if (whose === 'own') {
       this.ctx.fillStyle = COLOR_OWN_MOTHERSHIP_FILL;
     } else {
@@ -122,7 +126,6 @@ class GameClient {
     let textX = (x === 0 ? x + r : x - r * 2);
     this.ctx.font = '48px serif';
     this.ctx.fillText(String(stoneReserve), textX, 100);
-
   }
 
   drawHealth(x, y, value, max) {
@@ -139,9 +142,10 @@ class GameClient {
   drawDrone(drone, whose) {
     let { x, y, r, carryingStone, pathList, id } = drone;
 
+    let carryingStoneDownscaled = Math.ceil(carryingStone / 5);
     this.ctx.fillStyle = (whose === 'own' ? COLOR_OWN_DRONE_CARRYING_FILL : COLOR_OPPONENT_DRONE_CARRYING_FILL);;
     this.ctx.beginPath();
-    let carryingRad = (this.selectedDrone && this.selectedDrone.id === id) ? r + carryingStone + 5 : r + carryingStone;
+    let carryingRad = (this.selectedDrone && this.selectedDrone.id === id) ? r + carryingStoneDownscaled + 5 : r + carryingStoneDownscaled;
     this.ctx.arc(x, y, carryingRad, 0, 2 * Math.PI, false);
     this.ctx.fill();
 
@@ -175,8 +179,10 @@ class GameClient {
   drawStone(stone) {
     let { x, y, r } = stone;
     this.ctx.fillStyle = 'yellow';
-    let width = r;
-    let height = r;
+    // let uncertainty = Math.round(Math.random()) * 2;
+    let uncertainty = (Math.floor(Date.now() / 100) % 2 === 0) * 2;
+    let width = r + uncertainty;
+    let height = r + uncertainty;
     this.ctx.beginPath();
     this.ctx.moveTo(x + width * 0.5, y);
     this.ctx.lineTo(x, y + height * 0.5);
@@ -190,7 +196,7 @@ class GameClient {
   updateFps() {
     if (!this.__fps__time) this.__fps__time = Date.now();
     if (Date.now() - this.__fps__time > 1000) {
-      document.getElementById('fps').innerHTML = '' + this.fps;
+      document.getElementById('fps').innerHTML = 'FPS: ' + this.fps;
       this.__fps__time = Date.now();
       this.fps = 0;
     }
@@ -243,6 +249,9 @@ class GameClient {
   secondaryLoop() {
     if (!this.isGameRunning) return;
     if (this.gameData) {
+      if (!this.selectedDrone && this.gameData.own.droneList.length > 0) {
+        this.selectedDrone = this.gameData.own.droneList[0];
+      }
       this.drawCursor();
       this.drawPossibleTargetPath();
     }
@@ -261,36 +270,38 @@ class GameClient {
     this.mouse.isPrimary = isPrimary;
   }
 
+  onMouseDoubleClick(isPrimary) {
+    let { x, y } = this.mouse;
+
+    let isClickingMothership = (() => {
+      let { x: x1, y: y1, r } = this.gameData.own.mothership;
+      return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
+    })();
+
+    if (isClickingMothership) {
+      this.socket.emit('command:spawn-drone', {});
+      return
+    }
+  }
+
   onMouseClick(isPrimary) {
     if (!this.gameData) return;
     let { x, y } = this.mouse;
 
-    if (isPrimary) {
-      let isClickingMothership = (() => {
-        let { x: x1, y: y1, r } = this.gameData.own.mothership;
-        return (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < r);
-      })();
-      if (isClickingMothership) {
-        this.socket.emit('command:spawn-drone', {});
-        return
-      }
-      let nearby = this.gameData.own.droneList.map(drone => {
-        let { x: x1, y: y1 } = drone;
-        return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
-      })
-        .filter(({ d, drone }) => d < (drone.r + DRONE_SELECTION_RADIUS))
-        .sort((a, b) => a.d - b.d);
-      let drone = (nearby.length > 0 ? nearby[0].drone : null);
-      if (drone) {
-        this.selectedDrone = drone;
-      } else {
-        this.selectedDrone = null;
-      }
-    } else {
-      if (this.selectedDrone) {
-        this.socket.emit('command:move-drone', { x, y, id: this.selectedDrone.id });
-      }
+    let nearby = this.gameData.own.droneList.map(drone => {
+      let { x: x1, y: y1 } = drone;
+      return { d: (Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y))), drone };
+    })
+      .filter(({ d, drone }) => d < (drone.r + DRONE_SELECTION_RADIUS))
+      .sort((a, b) => a.d - b.d);
+    let drone = (nearby.length > 0 ? nearby[0].drone : null);
+    if (drone) {
+      this.selectedDrone = drone;
     }
+    if (this.selectedDrone) {
+      this.socket.emit('command:move-drone', { x, y, id: this.selectedDrone.id });
+    }
+
   }
 
 }
@@ -340,18 +351,32 @@ class Outside {
         outside: this
       });
 
-      this._on('#canvas', 'mousemove', (evt) => {
+      this._on('#canvas', 'mousemove', (event) => {
         var rect = canvas.getBoundingClientRect();
+
+        let scaleX = canvas.width / rect.width;
+        let scaleY = canvas.height / rect.height;
+
         this._gameClient.setMouseCoord({
-          x: evt.clientX - rect.left,
-          y: evt.clientY - rect.top
+          x: (event.clientX - rect.left) * scaleX,
+          y: (event.clientY - rect.top) * scaleY
         });
       });
 
-      this._on('#canvas', 'mousedown', (evt) => {
+      this._on('#canvas', 'dblclick', (event) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.onMouseDoubleClick(isPrimary);
+      });
+
+      this._on('#canvas', 'click', (event) => {
+        let isPrimary = (event.button === 0);
+        this._gameClient.onMouseClick(isPrimary);
+      });
+
+      this._on('#canvas', 'mousedown', (event) => {
         let isPrimary = (event.button === 0);
         this._gameClient.setMouseDownStatus(isPrimary, false);
-        this._gameClient.onMouseClick(isPrimary);
+        // this._gameClient.onMouseClick(isPrimary);
       });
 
       this._on('#canvas', 'mouseup', (event) => {
